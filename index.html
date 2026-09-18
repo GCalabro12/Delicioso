@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>DELICIOSO v29</title>
+<title>DELICIOSO v30</title>
 <meta name="theme-color" content="#1E7B34">
 <meta name="description" content="Gestión de ferias, ventas y stock para DELICOSO">
 <link rel="manifest" href="manifest.json">
@@ -359,7 +359,7 @@ select[multiple]{height:auto;min-height:96px;}
     <span></span><span></span><span></span>
   </button>
   <span class="lv-title" id="lv-title">Registrar venta</span>
-  <span class="lv-ver" id="version-badge">v29</span>
+  <span class="lv-ver" id="version-badge">v30</span>
   <img id="logo-img" alt="Logo DELICOSO">
 </div>
 
@@ -2585,24 +2585,61 @@ function renderDash(){
 
   // por artículo
   var byArt = {};
-  ventas.forEach(function(v){ var k=(v.articulo||'').trim(); byArt[k] = (byArt[k]||0) + (v.unid||0)*(v.precio||0); });
+  ventas.forEach(function(v){
+    var k=(v.articulo||'').trim();
+    if(!byArt[k]) byArt[k] = {unid:0, netas:0, coste:0};
+    byArt[k].unid  += (v.unid||0);
+    byArt[k].netas += (v.unid||0)*(v.precio||0);
+    byArt[k].coste += (v.unid||0)*costeArt(k);
+  });
   var artEl = document.getElementById('dash-articulos');
-  var artKeys = Object.keys(byArt).sort(function(a,b){ return byArt[b]-byArt[a]; });
-  artEl.innerHTML = artKeys.length
-    ? '<table>'+thRow(['Artículo','Ventas netas'])+artKeys.map(function(k){ return '<tr><td>'+esc(k)+'</td><td>'+euros(byArt[k])+'</td></tr>'; }).join('')+'</table>'
-    : '<div class="empty">Sin datos en este periodo.</div>';
+  var artKeys = Object.keys(byArt);
+  artKeys.sort(function(a,b){
+    var oa=byArt[a], ob=byArt[b], r;
+    if(DASH_ART_ORDEN.campo==='unid') r = oa.unid-ob.unid;
+    else if(DASH_ART_ORDEN.campo==='netas') r = oa.netas-ob.netas;
+    else if(DASH_ART_ORDEN.campo==='benef') r = (oa.netas-oa.coste)-(ob.netas-ob.coste);
+    else r = a.localeCompare(b,'es');
+    if(r===0) r = a.localeCompare(b,'es');
+    return r*DASH_ART_ORDEN.dir;
+  });
+  if(!artKeys.length){ artEl.innerHTML = '<div class="empty">Sin datos en este periodo.</div>'; }
+  else{
+    var fl2 = function(c){ return DASH_ART_ORDEN.campo===c ? (DASH_ART_ORDEN.dir===1?' \u2191':' \u2193') : ''; };
+    var cab2 = '<tr>'+[['nombre','Art\u00edculo'],['unid','Uds'],['netas','Ventas netas'],['benef','Beneficio bruto']]
+      .map(function(c){ return '<th class="art-th-sort" data-s="'+c[0]+'"><div class="colres">'+c[1]+fl2(c[0])+'</div></th>'; }).join('')+'</tr>';
+    artEl.innerHTML = '<table>'+cab2+artKeys.map(function(k){
+      var o = byArt[k];
+      return '<tr><td>'+esc(k)+'</td><td>'+numFmt(o.unid)+'</td><td>'+euros(o.netas)+'</td><td>'+euros(o.netas-o.coste)+'</td></tr>';
+    }).join('')+'</table>';
+    Array.prototype.forEach.call(artEl.querySelectorAll('.art-th-sort'), function(th){
+      th.addEventListener('click', function(){
+        var c = th.dataset.s;
+        if(DASH_ART_ORDEN.campo===c) DASH_ART_ORDEN.dir = -DASH_ART_ORDEN.dir;
+        else { DASH_ART_ORDEN.campo = c; DASH_ART_ORDEN.dir = (c==='nombre' ? 1 : -1); }
+        renderDash();
+      });
+    });
+  }
 
   // por feria
   var byFeria = {};
-  ventas.forEach(function(v){ byFeria[v.feriaNombre||'(sin feria)'] = (byFeria[v.feriaNombre||'(sin feria)']||0) + (v.unid||0)*(v.precio||0); });
+  ventas.forEach(function(v){
+    var k = v.feriaNombre||'(sin feria)';
+    if(!byFeria[k]) byFeria[k] = {unid:0, netas:0};
+    byFeria[k].unid += (v.unid||0);
+    byFeria[k].netas += (v.unid||0)*(v.precio||0);
+  });
   var ferEl = document.getElementById('dash-ferias');
-  var ferKeys = Object.keys(byFeria).sort(function(a,b){ return byFeria[b]-byFeria[a]; });
+  var ferKeys = Object.keys(byFeria).sort(function(a,b){ return byFeria[b].netas-byFeria[a].netas; });
   ferEl.innerHTML = ferKeys.length
-    ? '<table>'+thRow(['Feria','Ventas netas'])+ferKeys.map(function(k){ return '<tr><td>'+esc(k)+'</td><td>'+euros(byFeria[k])+'</td></tr>'; }).join('')+'</table>'
+    ? '<table>'+thRow(['Feria','Uds','Ventas netas'])+ferKeys.map(function(k){
+        return '<tr><td>'+esc(k)+'</td><td>'+numFmt(byFeria[k].unid)+'</td><td>'+euros(byFeria[k].netas)+'</td></tr>'; }).join('')+'</table>'
     : '<div class="empty">Sin datos en este periodo.</div>';
 }
 
 var DASH_TABLE_ROWS = [];
+var DASH_ART_ORDEN = {campo:'nombre', dir:1};
 document.getElementById('dash-export').addEventListener('click', function(){
   var head = ['Fecha','Ventas brutas','Costo de bienes','Beneficio bruto','Margen'];
   var csv = [head.join(';')].concat(DASH_TABLE_ROWS.map(function(r){
