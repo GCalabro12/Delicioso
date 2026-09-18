@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>DELICIOSO v22</title>
+<title>DELICIOSO v23</title>
 <meta name="theme-color" content="#1E7B34">
 <meta name="description" content="Gestión de ferias, ventas y stock para DELICOSO">
 <link rel="manifest" href="manifest.json">
@@ -200,11 +200,11 @@ body{padding-top:70px!important;}
 .lv-search input{width:180px;height:32px;border:none;border-bottom:0.5px solid var(--border-strong);border-radius:0;}
 .art-th-sort{cursor:pointer;user-select:none;}
 /* ---------- Lista de compra ---------- */
-.cp-head{display:grid;grid-template-columns:26px 24px 1fr 104px 104px;gap:8px;align-items:end;padding:0 4px 6px;
+.cp-head{display:grid;grid-template-columns:20px 26px 24px 1fr 104px 104px 30px;gap:8px;align-items:end;padding:0 4px 6px;
   border-bottom:0.5px solid var(--border);font-size:11px;color:var(--text-secondary);
   text-transform:uppercase;letter-spacing:.3px;}
-.cp-head span:nth-child(4),.cp-head span:nth-child(5){text-align:center;}
-.editando .cp-head{grid-template-columns:26px 24px 1fr 104px 104px 30px;}
+.cp-head span:nth-child(5),.cp-head span:nth-child(6){text-align:center;}
+
 .cp-tienda{margin-top:14px;}
 .cp-tienda-head{display:flex;align-items:center;gap:8px;background:var(--bg-accent);
   border-radius:var(--radius);min-height:40px;padding:6px 8px;color:var(--text-accent);font-size:14px;}
@@ -221,9 +221,9 @@ body{padding-top:70px!important;}
 .cp-tienda-edit input{height:32px;font-size:13px;}
 .cp-items{display:block;}
 .cp-tienda.cerrada .cp-items{display:none;}
-.cp-row{display:grid;grid-template-columns:26px 24px 1fr 104px 104px;gap:8px;align-items:center;
+.cp-row{display:grid;grid-template-columns:20px 26px 24px 1fr 104px 104px 30px;gap:8px;align-items:center;
   padding:5px 4px;border-bottom:0.5px solid var(--border);background:var(--surface-2);}
-.editando .cp-row{grid-template-columns:26px 24px 1fr 104px 104px 30px;}
+
 .cp-handle{background:transparent;border:none;padding:0;width:26px;height:30px;cursor:grab;touch-action:none;
   display:flex;flex-direction:column;justify-content:center;align-items:center;gap:3px;flex-shrink:0;}
 .cp-handle span{display:block;width:14px;height:2px;border-radius:2px;background:var(--border-strong);}
@@ -232,6 +232,9 @@ body{padding-top:70px!important;}
   opacity:.6;cursor:pointer;flex-shrink:0;}
 .cp-lapiz:hover{opacity:1;}
 .cp-lapiz.on{opacity:1;color:var(--text-accent);}
+.cp-num{font-size:10px;color:var(--text-muted);text-align:right;padding-right:2px;font-variant-numeric:tabular-nums;}
+.cp-row.editando-fila{background:var(--bg-accent);border-radius:6px;}
+.cp-row .del.viva{color:var(--text-danger);opacity:1;}
 /* ---------- Inscripción en ferias ---------- */
 .in-row{display:flex;gap:12px;align-items:flex-start;padding:10px 4px;border-bottom:0.5px solid var(--border);}
 .in-main{flex:1;min-width:0;}
@@ -265,10 +268,10 @@ body{padding-top:70px!important;}
 .cp-row.hecho .nom{text-decoration:line-through;background:var(--surface-1);border-radius:4px;}
 .cp-row.hecho input{background:var(--surface-1);color:var(--text-muted);}
 @media (max-width:640px){
-  .cp-head{grid-template-columns:22px 22px 1fr 62px 62px;}
-  .editando .cp-head{grid-template-columns:22px 22px 1fr 62px 62px 26px;}
-  .cp-row{grid-template-columns:22px 22px 1fr 62px 62px;}
-  .editando .cp-row{grid-template-columns:22px 22px 1fr 62px 62px 26px;}
+  .cp-head{grid-template-columns:16px 22px 22px 1fr 60px 60px 26px;}
+
+  .cp-row{grid-template-columns:16px 22px 22px 1fr 60px 60px 26px;}
+
   .cp-row .nom{font-size:12px;}
   .cp-row input{height:28px;font-size:12px;}
   .cp-tienda-edit{grid-template-columns:1fr;}
@@ -341,7 +344,7 @@ select[multiple]{height:auto;min-height:96px;}
     <span></span><span></span><span></span>
   </button>
   <span class="lv-title" id="lv-title">Registrar venta</span>
-  <span class="lv-ver" id="version-badge">v22</span>
+  <span class="lv-ver" id="version-badge">v23</span>
   <img id="logo-img" alt="Logo DELICOSO">
 </div>
 
@@ -580,6 +583,7 @@ select[multiple]{height:auto;min-height:96px;}
     </div>
     <p class="hint" id="cp-resumen" style="margin:6px 0 12px;"></p>
     <div class="cp-head">
+      <span>#</span>
       <span></span>
       <span></span>
       <span>Artículo</span>
@@ -1906,13 +1910,14 @@ function renderCompra(){
       var nombre = editando
         ? '<input class="nomedit" data-act="nombre" value="'+esc(it.n)+'">'
         : '<div class="nom" data-act="toggle">'+esc(it.n)+'</div>';
-      return '<div class="cp-row'+(it.hecho?' hecho':'')+'" data-g="'+gi+'" data-i="'+ii+'">'+
+      return '<div class="cp-row'+(it.hecho?' hecho':'')+(editando?' editando-fila':'')+'" data-g="'+gi+'" data-i="'+ii+'">'+
+        '<span class="cp-num">'+(ii+1)+'</span>'+
         '<button class="cp-handle" type="button" data-act="mover" aria-label="Mover art\u00edculo"><span></span><span></span><span></span></button>'+
         '<button class="cp-lapiz'+(editando?' on':'')+'" type="button" data-act="lapiz" aria-label="Editar texto">\u270f\ufe0f</button>'+
         nombre+
         '<input data-act="nec" value="'+esc(String(it.c===undefined||it.c===null?'':it.c))+'">'+
         '<input data-act="comp" value="'+esc(String(it.comp||''))+'" placeholder="\u2014">'+
-        (COMPRA.edit ? '<button class="del" type="button" data-act="del-item" aria-label="Borrar art\u00edculo">\u2715</button>' : '')+
+        ((COMPRA.edit || editando) ? '<button class="del'+(editando?' viva':'')+'" type="button" data-act="del-item" aria-label="Borrar art\u00edculo">\u2715</button>' : '<span></span>')+
       '</div>';
     }).join('');
 
@@ -1946,7 +1951,7 @@ function renderCompra(){
   el.innerHTML = html;
   document.getElementById('cp-resumen').textContent =
     hechos+' de '+totalItems+' art\u00edculos comprados \u00b7 '+(totalItems-hechos)+
-    ' pendientes. Toca el nombre para marcarlo, el l\u00e1piz para cambiar el texto y las rayitas para mover.';
+    ' pendientes. Toca el nombre para marcarlo, el l\u00e1piz para cambiar el texto o borrarlo con la \u2715 y las rayitas para mover.';
 
   if(COMPRA.editItem){
     var inp = el.querySelector('.cp-row[data-g="'+COMPRA.editItem.split(':')[0]+'"][data-i="'+COMPRA.editItem.split(':')[1]+'"] input[data-act="nombre"]');
@@ -1983,6 +1988,8 @@ document.getElementById('cp-lista').addEventListener('click', function(e){
     renderCompra(); return;
   }
   if(act==='del-item'){
+    var nombreIt = (COMPRA.data[gi].items[ii]||{}).n || '';
+    if(!confirm('\u00bfBorrar \u201c'+nombreIt+'\u201d de la lista?')) return;
     COMPRA.data[gi].items.splice(ii,1);
     COMPRA.editItem=''; saveCompra(); renderCompra(); return;
   }
