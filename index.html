@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>DELICIOSO v36</title>
+<title>DELICIOSO v38</title>
 <meta name="theme-color" content="#1E7B34">
 <meta name="description" content="Gestión de ferias, ventas y stock para DELICOSO">
 <link rel="manifest" href="manifest.json">
@@ -272,18 +272,18 @@ body{padding-top:70px!important;}
   border:none;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:5px;}
 
 /* ---------- Preparados (misma plantilla que la lista de compra) ---------- */
-.pr-row{display:grid;grid-template-columns:26px 24px 1fr 128px;gap:8px;align-items:center;
+.pr-row{display:grid;grid-template-columns:26px 24px 1fr 128px 30px;gap:8px;align-items:center;
   padding:5px 4px;border-bottom:0.5px solid var(--border);background:var(--surface-2);}
-.editando-prep .pr-row{grid-template-columns:26px 24px 1fr 128px 30px;}
+.pr-row.editando-fila{background:var(--bg-accent);border-radius:6px;}
+.pr-row .del.viva{color:var(--text-danger);opacity:1;}
 .pr-row input.pr-valor{height:30px;font-size:13px;padding:0 6px;}
 .pr-notas{margin:10px 4px 6px;}
 .pr-notas label{font-size:11px;color:var(--text-secondary);display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.3px;}
-.pr-notas textarea{width:100%;min-height:84px;font-size:13px;font-family:inherit;line-height:1.4;
+.pr-notas textarea{width:100%;min-height:140px;font-size:13px;font-family:inherit;line-height:1.4;
   padding:8px;border-radius:8px;border:0.5px solid var(--border-strong);background:var(--surface-1);
   color:var(--text-primary);resize:vertical;}
 @media (max-width:640px){
-  .pr-row{grid-template-columns:22px 22px 1fr 96px;}
-  .editando-prep .pr-row{grid-template-columns:22px 22px 1fr 96px 26px;}
+  .pr-row{grid-template-columns:22px 22px 1fr 96px 26px;}
 }
 @media (max-width:640px){
   .in-row{flex-direction:column;gap:6px;}
@@ -385,7 +385,7 @@ select[multiple]{height:auto;min-height:96px;}
     <span></span><span></span><span></span>
   </button>
   <span class="lv-title" id="lv-title">Registrar venta</span>
-  <span class="lv-ver" id="version-badge">v36</span>
+  <span class="lv-ver" id="version-badge">v38</span>
   <img id="logo-img" alt="Logo DELICOSO">
 </div>
 
@@ -532,8 +532,8 @@ select[multiple]{height:auto;min-height:96px;}
 <div class="panel" id="p-como-llegar">
   <div class="card">
     <div class="toprow" style="flex-wrap:wrap;gap:10px;">
-      <h2 style="margin:0;">\U0001f4cd Cómo llegar</h2>
-      <button class="small" id="cl-refresh" type="button">\U0001f504 Actualizar</button>
+      <h2 style="margin:0;">📍 Cómo llegar</h2>
+      <button class="small" id="cl-refresh" type="button">🔄 Actualizar</button>
     </div>
     <p class="hint" style="margin:6px 0 12px;">Dirección y enlace a Waze de todas las ferias, sacados de las mismas fichas de Notion que ves en "Inscripción en ferias".</p>
     <div class="lv-sel" style="margin-bottom:10px;">
@@ -829,7 +829,7 @@ select[multiple]{height:auto;min-height:96px;}
 
 <div class="panel" id="p-musica">
   <div class="card">
-    <h2 style="margin-top:0;">\U0001f3b5 Música de fondo</h2>
+    <h2 style="margin-top:0;">🎵 Música de fondo</h2>
     <p class="hint" style="margin:0 0 14px;">Cuatro vídeos largos de YouTube para tener sonando en el stand. Ábrelos y déjalos en segundo plano; todos duran una hora y media o más.</p>
     <div id="mu-lista"></div>
     <p class="hint" style="margin-top:12px;">Si el local o la feria exige música con licencia SGAE/AGEDI, comprueba las condiciones de reproducción pública antes de usarlos en el stand.</p>
@@ -2074,12 +2074,12 @@ function crearGestorPreparados(seccion, pfx){
         var nombre = editando
           ? '<input class="nomedit" data-act="texto" value="'+esc(r.texto)+'" placeholder="Descripci\u00f3n\u2026">'
           : '<div class="nom" data-act="toggle">'+(r.texto ? esc(r.texto) : '<span class="cp-vacio">(sin texto \u2014 toca el l\u00e1piz)</span>')+'</div>';
-        return '<div class="pr-row" data-c="'+ci+'" data-r="'+ri+'">'+
+        return '<div class="pr-row'+(editando?' editando-fila':'')+'" data-c="'+ci+'" data-r="'+ri+'">'+
           '<button class="cp-handle" type="button" data-act="mover" aria-label="Mover l\u00ednea"><span></span><span></span><span></span></button>'+
           '<button class="cp-lapiz'+(editando?' on':'')+'" type="button" data-act="lapiz" aria-label="Editar texto">\u270f\ufe0f</button>'+
           nombre+
           '<input class="pr-valor" data-act="valor" value="'+esc(r.valor||'')+'" placeholder="cantidad\u2026">'+
-          (edit ? '<button class="del" type="button" data-act="del-row" aria-label="Borrar l\u00ednea">\u2715</button>' : '')+
+          ((edit || editando) ? '<button class="del'+(editando?' viva':'')+'" type="button" data-act="del-row" aria-label="Borrar l\u00ednea">\u2715</button>' : '<span></span>')+
         '</div>';
       }).join('');
 
@@ -2105,7 +2105,8 @@ function crearGestorPreparados(seccion, pfx){
       }
 
       var notas = '<div class="pr-notas"><label>Notas / pasos</label>'+
-        '<textarea data-act="notas" placeholder="Pasos de preparaci\u00f3n\u2026">'+esc(card.notas||'')+'</textarea></div>';
+        '<textarea data-act="notas" data-c="'+ci+'" placeholder="Pasos de preparaci\u00f3n\u2026"'+
+        (card.notasAlto ? ' style="height:'+card.notasAlto+'px;"' : '')+'>'+esc(card.notas||'')+'</textarea></div>';
 
       return '<div class="cp-tienda'+(cerrada?' cerrada':'')+'" data-c="'+ci+'">'+
         cabecera+'<div class="cp-items">'+filas+notas+'</div></div>';
@@ -2120,6 +2121,23 @@ function crearGestorPreparados(seccion, pfx){
       var it = el.querySelector('.cp-tienda[data-c="'+PREP.editCard[seccion]+'"] input[data-act="titulo"]');
       if(it) it.focus();
     }
+
+    Array.prototype.forEach.call(el.querySelectorAll('.pr-notas textarea'), function(ta){
+      var ci = +ta.dataset.c;
+      if(!datos[ci].notasAlto){
+        ta.style.height = 'auto';
+        ta.style.height = Math.max(ta.scrollHeight, 140) + 'px';
+      }
+      if(typeof ResizeObserver !== 'undefined'){
+        ta.dataset.skip = '1';
+        var ro = new ResizeObserver(function(){
+          if(ta.dataset.skip === '1'){ ta.dataset.skip=''; return; }
+          datos[ci].notasAlto = Math.round(ta.getBoundingClientRect().height);
+          prepSave();
+        });
+        ro.observe(ta);
+      }
+    });
   }
 
   $(pfx+'-lista').addEventListener('click', function(e){
@@ -2142,6 +2160,8 @@ function crearGestorPreparados(seccion, pfx){
       render(); return;
     }
     if(act==='del-row'){
+      var nombreLinea = (datos[ci].rows[ri]||{}).texto || '';
+      if(!confirm(nombreLinea ? '\u00bfBorrar \u201c'+nombreLinea+'\u201d?' : '\u00bfBorrar esta l\u00ednea?')) return;
       datos[ci].rows.splice(ri,1);
       PREP.editItem[seccion]=''; prepSave(); render(); return;
     }
@@ -2296,13 +2316,13 @@ document.getElementById('cl-refresh').addEventListener('click', function(){ insc
 
 /* ============ MÚSICA (vídeos largos para el stand) ============ */
 var MUSICA = [
-  {emoji:'\U0001f3f0', titulo:'Ambiente medieval (taberna)', desc:'Fantas\u00eda medieval, ideal para ferias tem\u00e1ticas o de artesan\u00eda',
+  {emoji:'🏰', titulo:'Ambiente medieval (taberna)', desc:'Fantas\u00eda medieval, ideal para ferias tem\u00e1ticas o de artesan\u00eda',
    url:'https://www.youtube.com/watch?v=hX2locFzgVk'},
-  {emoji:'\U0001f3aa', titulo:'Festival / m\u00fasica moderna', desc:'EDM animado, para ferias tipo festival con m\u00e1s ambiente',
+  {emoji:'🎪', titulo:'Festival / m\u00fasica moderna', desc:'EDM animado, para ferias tipo festival con m\u00e1s ambiente',
    url:'https://www.youtube.com/watch?v=CvmlMa7Zgc8'},
   {emoji:'\u2615', titulo:'Ambiente tranquilo (caf\u00e9/jazz)', desc:'Jazz suave de fondo, para un ritmo m\u00e1s relajado',
    url:'https://www.youtube.com/watch?v=B7ha39Q0r3I'},
-  {emoji:'\U0001f3b9', titulo:'Ambiente tranquilo (chillout)', desc:'Instrumental relajado, alternativa a la anterior',
+  {emoji:'🎹', titulo:'Ambiente tranquilo (chillout)', desc:'Instrumental relajado, alternativa a la anterior',
    url:'https://www.youtube.com/watch?v=YACyyY64X-E'}
 ];
 
