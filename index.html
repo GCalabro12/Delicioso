@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>DELICIOSO v25</title>
+<title>DELICIOSO v27</title>
 <meta name="theme-color" content="#1E7B34">
 <meta name="description" content="Gestión de ferias, ventas y stock para DELICOSO">
 <link rel="manifest" href="manifest.json">
@@ -355,7 +355,7 @@ select[multiple]{height:auto;min-height:96px;}
     <span></span><span></span><span></span>
   </button>
   <span class="lv-title" id="lv-title">Registrar venta</span>
-  <span class="lv-ver" id="version-badge">v25</span>
+  <span class="lv-ver" id="version-badge">v27</span>
   <img id="logo-img" alt="Logo DELICOSO">
 </div>
 
@@ -590,7 +590,7 @@ select[multiple]{height:auto;min-height:96px;}
         <button class="small" id="cp-restaurar" type="button" style="display:none;">Restaurar original</button>
         <button class="small" id="cp-abrir-todo" type="button">Abrir todo</button>
         <button class="small" id="cp-cerrar-todo" type="button">Cerrar todo</button>
-        <button class="small" id="cp-reset" type="button">Limpiar marcas</button>
+        <button class="small" id="cp-reset" type="button">Limpiar pedidos</button>
       </div>
     </div>
     <p class="hint" id="cp-resumen" style="margin:6px 0 12px;"></p>
@@ -1927,10 +1927,11 @@ function renderCompra(){
   var totalItems = 0, hechos = 0;
   var html = indices.map(function(gi){
     var g = COMPRA.data[gi];
-    var pend = 0;
+    var pend = 0, pedidos = 0;
     var filas = g.items.map(function(it, ii){
       totalItems++;
       if(it.hecho) hechos++; else pend++;
+      if(String(it.comp||'').trim()!=='') pedidos++;
       var editando = COMPRA.editItem === (gi+':'+ii);
       var nombre = editando
         ? '<input class="nomedit" data-act="nombre" value="'+esc(it.n)+'">'
@@ -1963,7 +1964,7 @@ function renderCompra(){
         (COMPRA.agrupar ? '<span class="cp-handle"></span>' : '<button class="cp-handle cp-handle-t" type="button" data-act="mover-tienda" aria-label="Mover tienda"><span></span><span></span><span></span></button>')+
         '<button class="tri" type="button" data-act="fold">\u25bc</button>'+
         '<span class="nom" data-act="fold">'+esc(g.tienda)+(g.nota?' <span class="nota">('+esc(g.nota)+')</span>':'')+'</span>'+
-        '<span class="cnt">'+pend+'/'+g.items.length+'</span>'+
+        '<span class="cnt">'+(pedidos ? 'pedidos '+pedidos : '')+'</span>'+
         (COMPRA.agrupar ? '' :
           '<button class="acc" type="button" data-act="sube-tienda" aria-label="Subir tienda"'+(gi===0?' disabled':'')+'>\u25b2</button>'+
           '<button class="acc" type="button" data-act="baja-tienda" aria-label="Bajar tienda"'+(gi===COMPRA.data.length-1?' disabled':'')+'>\u25bc</button>')+
@@ -2148,6 +2149,11 @@ document.getElementById('cp-cerrar-todo').addEventListener('click', function(){
   saveCompra(); renderCompra();
 });
 document.getElementById('cp-reset').addEventListener('click', function(){
+  var pedidos = 0;
+  COMPRA.data.forEach(function(g){ g.items.forEach(function(it){
+    if(String(it.comp||'').trim()!=='' || it.hecho) pedidos++;
+  }); });
+  if(pedidos && !confirm('Se van a borrar las cantidades a comprar y las marcas de '+pedidos+' art\u00edculos. \u00bfEmpezar una compra nueva?')) return;
   COMPRA.data.forEach(function(g){ g.items.forEach(function(it){ it.hecho=false; it.comp=''; }); });
   saveCompra(); renderCompra();
 });
