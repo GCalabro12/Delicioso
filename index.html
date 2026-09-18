@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>DELICIOSO v32</title>
+<title>DELICIOSO v33</title>
 <meta name="theme-color" content="#1E7B34">
 <meta name="description" content="Gestión de ferias, ventas y stock para DELICOSO">
 <link rel="manifest" href="manifest.json">
@@ -177,6 +177,7 @@ body{padding-top:70px!important;}
 .lv-dd-busca{position:sticky;top:0;background:var(--surface-2);padding:8px;border-bottom:0.5px solid var(--border);}
 .lv-dd-busca input{height:32px;font-size:13px;width:100%;}
 .lv-dd-items{max-height:230px;overflow-y:auto;}
+.lv-dd-sub{padding-left:28px!important;font-size:12.5px;color:var(--text-secondary);}
 .lv-pager{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-top:12px;margin-top:6px;
   border-top:0.5px solid var(--border);font-size:13px;color:var(--text-secondary);}
 .lv-pager .nav{display:flex;}
@@ -360,7 +361,7 @@ select[multiple]{height:auto;min-height:96px;}
     <span></span><span></span><span></span>
   </button>
   <span class="lv-title" id="lv-title">Registrar venta</span>
-  <span class="lv-ver" id="version-badge">v32</span>
+  <span class="lv-ver" id="version-badge">v33</span>
   <img id="logo-img" alt="Logo DELICOSO">
 </div>
 
@@ -616,6 +617,9 @@ select[multiple]{height:auto;min-height:96px;}
 
   <div class="lv-filters" id="f-dash"></div>
 
+  <div class="card" id="dash-multi" style="display:none;"></div>
+
+  <div id="dash-detalle">
   <div class="lv-kpis" id="dash-kpis"></div>
 
   <div class="card">
@@ -643,12 +647,16 @@ select[multiple]{height:auto;min-height:96px;}
       <div id="dash-ferias" style="margin-top:10px;"><div class="empty">Sin datos todavía.</div></div>
     </details>
   </div>
+  </div>
 </div>
 
 <div class="panel" id="p-analisis">
 
   <div class="lv-filters" id="f-art"></div>
 
+  <div class="card" id="art-multi" style="display:none;"></div>
+
+  <div id="art-detalle">
   <div class="lv-split">
     <div class="left">
       <div class="lv-top5-h">
@@ -682,12 +690,16 @@ select[multiple]{height:auto;min-height:96px;}
     </div>
     <div id="art-table"></div>
   </div>
+  </div>
 </div>
 
 <div class="panel" id="p-categorias">
 
   <div class="lv-filters" id="f-cat"></div>
 
+  <div class="card" id="cat-multi" style="display:none;"></div>
+
+  <div id="cat-detalle">
   <div class="card">
     <div class="toprow">
       <div class="lv-export-h">EXPORTAR</div>
@@ -695,6 +707,7 @@ select[multiple]{height:auto;min-height:96px;}
     </div>
     <div id="cat-table"></div>
     <div class="lv-pager" id="cat-pager"></div>
+  </div>
   </div>
 </div>
 
@@ -2240,12 +2253,16 @@ function costeArt(nombre){
 }
 
 function ventasDash(){
+  var sel = DASH.feria ? feriaParse(DASH.feria) : null;
   return STATE.ventas.filter(function(v){
     if(/^z/i.test((v.articulo||'').trim())) return false;
     if(!v.fecha) return false;
     if(DASH.from && v.fecha < DASH.from) return false;
     if(DASH.to && v.fecha > DASH.to) return false;
-    if(DASH.feria && v.feriaNombre !== DASH.feria) return false;
+    if(sel){
+      if(v.feriaNombre !== sel.nombre) return false;
+      if(sel.anio && v.fecha.slice(0,4) !== sel.anio) return false;
+    }
     return true;
   });
 }
@@ -2255,6 +2272,64 @@ function nombresFerias(){
   STATE.ferias.forEach(function(f){ if(f.nombre && n.indexOf(f.nombre)===-1) n.push(f.nombre); });
   STATE.ventas.forEach(function(v){ if(v.feriaNombre && n.indexOf(v.feriaNombre)===-1) n.push(v.feriaNombre); });
   return n.sort();
+}
+
+/* --- ferias con varias ediciones (mismo nombre, distintos a\u00f1os) --- */
+function feriaClave(nombre, anio){ return anio ? nombre+'##'+anio : nombre; }
+function feriaParse(clave){
+  var i = clave.indexOf('##');
+  return i===-1 ? {nombre:clave, anio:''} : {nombre:clave.slice(0,i), anio:clave.slice(i+2)};
+}
+function feriasAgrupadas(){
+  var porNombre = {};
+  function add(nombre, anio){
+    if(!nombre) return;
+    if(!porNombre[nombre]) porNombre[nombre] = {};
+    if(anio) porNombre[nombre][anio] = true;
+  }
+  STATE.ventas.forEach(function(v){ add(v.feriaNombre, (v.fecha||'').slice(0,4)); });
+  STATE.ferias.forEach(function(f){ add(f.nombre, (f.fecha||'').slice(0,4)); });
+  return Object.keys(porNombre).sort().map(function(n){
+    return {nombre:n, anios:Object.keys(porNombre[n]).sort()};
+  });
+}
+function feriaSeleccionMultiple(){
+  if(!DASH.feria) return null;
+  var p = feriaParse(DASH.feria);
+  if(p.anio) return null;
+  var g = feriasAgrupadas().filter(function(x){ return x.nombre===p.nombre; })[0];
+  return (g && g.anios.length>1) ? g : null;
+}
+function feriaLabel(clave){
+  if(!clave) return 'Todas las ferias';
+  var p = feriaParse(clave);
+  return p.anio ? p.nombre+' ('+p.anio+')' : p.nombre;
+}
+function articulosPorAnio(nombreFeria){
+  var porAnio = {};
+  STATE.ventas.forEach(function(v){
+    if(v.feriaNombre!==nombreFeria) return;
+    if(/^z/i.test((v.articulo||'').trim())) return;
+    var y = (v.fecha||'').slice(0,4); if(!y) return;
+    porAnio[y] = (porAnio[y]||0) + (v.unid||0);
+  });
+  return Object.keys(porAnio).sort().map(function(a){ return [a, porAnio[a]]; });
+}
+function pintaMultiEdicion(hostId, detalleId){
+  var multi = feriaSeleccionMultiple();
+  document.getElementById(hostId).style.display = multi ? '' : 'none';
+  document.getElementById(detalleId).style.display = multi ? 'none' : '';
+  if(!multi) return false;
+  var filas = articulosPorAnio(multi.nombre);
+  document.getElementById(hostId).innerHTML =
+    '<h2 style="margin:0 0 4px;">'+esc(multi.nombre)+' tiene '+multi.anios.length+' ediciones</h2>'+
+    '<p class="hint" style="margin:0 0 10px;">Sumar art\\u00edculos de a\\u00f1os distintos no da un dato \\u00fatil, as\\u00ed que aqu\\u00ed solo se muestran las unidades vendidas de cada edici\\u00f3n. Elige un a\\u00f1o concreto en el filtro de arriba para ver ventas netas, coste y beneficio.</p>'+
+    (filas.length
+      ? '<table>'+thRow(['A\\u00f1o','Art\\u00edculos vendidos'])+filas.map(function(f){
+          return '<tr><td>'+f[0]+'</td><td>'+numFmt(f[1])+'</td></tr>';
+        }).join('')+'</table>'
+      : '<div class="empty">Sin ventas registradas todav\\u00eda.</div>');
+  return true;
 }
 
 /* --- barra de filtros reutilizable (periodo + feria) --- */
@@ -2397,16 +2472,27 @@ function makeFilterBar(hostId){
   });
   function pintaFerias(filtro){
     var q = (filtro||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-    var lista = nombresFerias().filter(function(n){
+    var grupos = feriasAgrupadas().filter(function(g){
       if(!q) return true;
-      return n.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').indexOf(q) !== -1;
+      return g.nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').indexOf(q) !== -1;
     });
+    var selActual = DASH.feria || '';
     $('ferdd').innerHTML =
       '<div class="lv-dd-busca"><input id="'+p+'ferbusca" type="search" placeholder="Buscar feria\u2026" value="'+esc(filtro||'')+'"></div>'+
       '<div class="lv-dd-items">'+
-        (q ? '' : '<button type="button" data-f=""'+(DASH.feria?'':' class="sel"')+'>Todas las ferias</button>')+
-        (lista.length ? lista.map(function(n){
-          return '<button type="button" data-f="'+esc(n)+'"'+(DASH.feria===n?' class="sel"':'')+'>'+esc(n)+'</button>';
+        (q ? '' : '<button type="button" data-clave="" class="'+(selActual?'':'sel')+'">Todas las ferias</button>')+
+        (grupos.length ? grupos.map(function(g){
+          var multi = g.anios.length > 1;
+          var claveNombre = feriaClave(g.nombre);
+          var html = '<button type="button" data-clave="'+esc(claveNombre)+'" class="'+(selActual===claveNombre?'sel':'')+'">'+
+            esc(g.nombre)+(multi?' <span class="cr" style="font-size:11px;">'+g.anios.length+' ediciones</span>':'')+'</button>';
+          if(multi){
+            html += g.anios.slice().reverse().map(function(a){
+              var clave = feriaClave(g.nombre, a);
+              return '<button type="button" class="lv-dd-sub'+(selActual===clave?' sel':'')+'" data-clave="'+esc(clave)+'">'+esc(g.nombre)+' \u2014 '+a+'</button>';
+            }).join('');
+          }
+          return html;
         }).join('') : '<button type="button" disabled style="color:var(--text-muted);">Ninguna feria con ese nombre</button>')+
       '</div>';
     var inp = document.getElementById(p+'ferbusca');
@@ -2421,14 +2507,14 @@ function makeFilterBar(hostId){
     }
   }
   $('ferdd').addEventListener('click', function(e){
-    var b = e.target.closest('button[data-f]'); if(!b) return;
-    DASH.feria = b.dataset.f; cerrarTodo(); renderInformes();
+    var b = e.target.closest('button[data-clave]'); if(!b) return;
+    DASH.feria = b.dataset.clave; cerrarTodo(); renderInformes();
   });
 
   var api = {
     refresh:function(){
       $('label').textContent = dCorto(DASH.from)+' - '+dCorto(DASH.to);
-      $('ferlabel').textContent = DASH.feria || 'Todas las ferias';
+      $('ferlabel').textContent = feriaLabel(DASH.feria);
     }
   };
   FILTER_BARS.push(api);
@@ -2491,6 +2577,7 @@ function renderDash(){
   if(!DASH.from || !DASH.to) aplicarQuick('todo');
   else if(DASH.quick==='todo'){ var rt=rangoTodo(); DASH.from=rt.from; DASH.to=rt.to; }
   refreshFilterBars();
+  if(pintaMultiEdicion('dash-multi','dash-detalle')) return;
 
   var ventas = ventasDash();
   var porDia = {};
@@ -2673,6 +2760,7 @@ function renderArtReport(){
   if(!DASH.from || !DASH.to) aplicarQuick('todo');
   else if(DASH.quick==='todo'){ var rt=rangoTodo(); DASH.from=rt.from; DASH.to=rt.to; }
   refreshFilterBars();
+  if(pintaMultiEdicion('art-multi','art-detalle')) return;
 
   var ventas = ventasDash();
 
@@ -2810,6 +2898,7 @@ function renderCatReport(){
   if(!DASH.from || !DASH.to) aplicarQuick('todo');
   else if(DASH.quick==='todo'){ var rt=rangoTodo(); DASH.from=rt.from; DASH.to=rt.to; }
   refreshFilterBars();
+  if(pintaMultiEdicion('cat-multi','cat-detalle')) return;
 
   var byCat = {};
   ventasDash().forEach(function(v){
