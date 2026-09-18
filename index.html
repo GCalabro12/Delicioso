@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>DELICIOSO v27</title>
+<title>DELICIOSO v29</title>
 <meta name="theme-color" content="#1E7B34">
 <meta name="description" content="Gestión de ferias, ventas y stock para DELICOSO">
 <link rel="manifest" href="manifest.json">
@@ -172,7 +172,11 @@ body{padding-top:70px!important;}
 .lv-top5-row{display:flex;align-items:center;gap:10px;padding:10px 0;font-size:13px;}
 .lv-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;}
 .lv-top5-row .n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.lv-top5-row .t{font-weight:500;white-space:nowrap;}
+.lv-top5-row .t{font-weight:500;white-space:nowrap;text-align:right;line-height:1.25;}
+.lv-top5-row .t .u{font-weight:400;font-size:11px;color:var(--text-secondary);}
+.lv-dd-busca{position:sticky;top:0;background:var(--surface-2);padding:8px;border-bottom:0.5px solid var(--border);}
+.lv-dd-busca input{height:32px;font-size:13px;width:100%;}
+.lv-dd-items{max-height:230px;overflow-y:auto;}
 .lv-pager{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-top:12px;margin-top:6px;
   border-top:0.5px solid var(--border);font-size:13px;color:var(--text-secondary);}
 .lv-pager .nav{display:flex;}
@@ -355,7 +359,7 @@ select[multiple]{height:auto;min-height:96px;}
     <span></span><span></span><span></span>
   </button>
   <span class="lv-title" id="lv-title">Registrar venta</span>
-  <span class="lv-ver" id="version-badge">v27</span>
+  <span class="lv-ver" id="version-badge">v29</span>
   <img id="logo-img" alt="Logo DELICOSO">
 </div>
 
@@ -654,7 +658,7 @@ select[multiple]{height:auto;min-height:96px;}
     <div class="left">
       <div class="lv-top5-h">
         <strong>Top 5 artículos</strong>
-        <span style="color:var(--text-secondary);font-size:13px;">Ventas netas</span>
+        <span style="color:var(--text-secondary);font-size:13px;">Ventas netas / uds</span>
       </div>
       <div id="art-top5"><div class="empty">Sin datos en este periodo.</div></div>
     </div>
@@ -721,7 +725,9 @@ select[multiple]{height:auto;min-height:96px;}
       <input id="at-token" type="password" placeholder="pat...">
     </div>
     <button class="primary" id="at-save">Guardar token</button>
+    <button class="small" id="at-clear" type="button">Borrar el de este dispositivo</button>
     <span id="at-status" class="hint" style="margin-left:8px;"></span>
+    <p class="hint" id="at-origen" style="margin:8px 0 0;"></p>
   </div>
 
   <div class="card">
@@ -762,11 +768,42 @@ var FLD_FERIAS = {feria:'fld2KqgSnrLVuCeDy', fechaInicio:'fldnwi78hWp8ojihg', du
 var FLD_VENTAS = {feria:'fld70hHU2W1wZ2kC2', fecha:'fldiXWhT8rHfI9Tt9', articulo:'fldhOavbndf0CHR2g', unid:'fldQu1rSttNF9edII', eurUnid:'fld5gbXTnVUOb3SnK'};
 var FLD_ARTICULOS = {nombre:'fldOwJzAd7WMDj9Iz', precio:'fldZBJ2GHEVfgC7CB', categoria:'fldOaKaGlskx1lD1E', coste:'fldypKWz1eGTbq8Md', margen:'fldXhocJufWaYaB0v', stock:'fld2vUa2EXTbsgONN'};
 
-var EMBEDDED_TOKEN = 'patSuwUgrp898NDAD.87c214f8a224918e475ffd4a453e48ceb2dfe528fdd68a73bb35f646a503e94a';
-function getToken(){ return localStorage.getItem('delicoso-token') || EMBEDDED_TOKEN; }
+/* ==========================================================================
+   TOKEN DE AIRTABLE INCRUSTADO
+   Pega aquí tu Personal Access Token entre las comillas y vuelve a subir el
+   archivo. Así la app funciona en cualquier móvil sin escribirlo a mano.
+   Crearlo en: airtable.com/create/tokens  (permisos data.records:read y
+   data.records:write, y dar acceso a la base DELICIOSO).
+   ========================================================================== */
+var EMBEDDED_TOKEN = 'PEGA_AQUI_TU_TOKEN';
+
+function getToken(){
+  var local = (localStorage.getItem('delicoso-token')||'').trim();
+  if(local) return local;
+  return EMBEDDED_TOKEN.indexOf('PEGA_AQUI') === 0 ? '' : EMBEDDED_TOKEN;
+}
+function origenToken(){
+  var local = (localStorage.getItem('delicoso-token')||'').trim();
+  if(local) return 'guardado en este dispositivo';
+  if(EMBEDDED_TOKEN.indexOf('PEGA_AQUI') === 0) return 'ninguno: falta pegarlo en el archivo o aqu\u00ed abajo';
+  return 'el que viene incrustado en el archivo';
+}
 document.getElementById('at-token').value = getToken();
+function pintaOrigenToken(){
+  var el = document.getElementById('at-origen');
+  if(el) el.textContent = 'Ahora mismo se est\u00e1 usando: '+origenToken()+'.';
+}
+pintaOrigenToken();
+document.getElementById('at-clear').addEventListener('click', function(){
+  localStorage.removeItem('delicoso-token');
+  document.getElementById('at-token').value = '';
+  var st = document.getElementById('at-status');
+  st.textContent = 'Borrado. Se usar\u00e1 el del archivo.'; st.style.color = 'var(--text-secondary)';
+  pintaOrigenToken();
+});
 document.getElementById('at-save').addEventListener('click', function(){
   localStorage.setItem('delicoso-token', document.getElementById('at-token').value.trim());
+  pintaOrigenToken();
   var s = document.getElementById('at-status');
   s.textContent = 'Guardado.'; s.style.color = 'var(--text-success)';
   setTimeout(function(){ s.textContent=''; }, 2500);
@@ -2358,13 +2395,36 @@ function makeFilterBar(hostId){
     var abierto = $('ferdd').classList.contains('open');
     cerrarTodo();
     if(abierto) return;
-    var lista = nombresFerias();
-    $('ferdd').innerHTML = '<button type="button" data-f=""'+(DASH.feria?'':' class="sel"')+'>Todas las ferias</button>'+
-      (lista.length ? lista.map(function(n){
-        return '<button type="button" data-f="'+esc(n)+'"'+(DASH.feria===n?' class="sel"':'')+'>'+esc(n)+'</button>';
-      }).join('') : '<button type="button" disabled style="color:var(--text-muted);">A\u00fan no hay ferias</button>');
+    pintaFerias('');
     $('ferdd').classList.add('open');
+    var busc = document.getElementById(p+'ferbusca');
+    if(busc){ busc.value=''; setTimeout(function(){ busc.focus(); }, 30); }
   });
+  function pintaFerias(filtro){
+    var q = (filtro||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+    var lista = nombresFerias().filter(function(n){
+      if(!q) return true;
+      return n.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').indexOf(q) !== -1;
+    });
+    $('ferdd').innerHTML =
+      '<div class="lv-dd-busca"><input id="'+p+'ferbusca" type="search" placeholder="Buscar feria\u2026" value="'+esc(filtro||'')+'"></div>'+
+      '<div class="lv-dd-items">'+
+        (q ? '' : '<button type="button" data-f=""'+(DASH.feria?'':' class="sel"')+'>Todas las ferias</button>')+
+        (lista.length ? lista.map(function(n){
+          return '<button type="button" data-f="'+esc(n)+'"'+(DASH.feria===n?' class="sel"':'')+'>'+esc(n)+'</button>';
+        }).join('') : '<button type="button" disabled style="color:var(--text-muted);">Ninguna feria con ese nombre</button>')+
+      '</div>';
+    var inp = document.getElementById(p+'ferbusca');
+    if(inp){
+      inp.addEventListener('input', function(){
+        var pos = this.value;
+        pintaFerias(pos);
+        var nuevo = document.getElementById(p+'ferbusca');
+        if(nuevo){ nuevo.focus(); nuevo.setSelectionRange(pos.length, pos.length); }
+      });
+      inp.addEventListener('click', function(e){ e.stopPropagation(); });
+    }
+  }
   $('ferdd').addEventListener('click', function(e){
     var b = e.target.closest('button[data-f]'); if(!b) return;
     DASH.feria = b.dataset.f; cerrarTodo(); renderInformes();
@@ -2564,6 +2624,7 @@ function allVals(containerId){
 /* ============ INFORME: VENTAS POR ARTÍCULO (estilo Loyverse) ============ */
 var ART_COLORS = ['#7E8C99','#9CCC65','#42A5F5','#EC407A','#FFEE58','#BDBDBD'];
 var ART_TABLE_ROWS = [];
+var ART_ORDEN = {campo:'nombre', dir:1};
 
 function stackedChartSVG(labels, series, tipo){
   var n = labels.length;
@@ -2641,7 +2702,8 @@ function renderArtReport(){
   t5.innerHTML = top5.length
     ? top5.map(function(k,i){
         return '<div class="lv-top5-row"><span class="lv-dot" style="background:'+ART_COLORS[i]+'"></span>'+
-          '<span class="n">'+esc(k)+'</span><span class="t">'+euros(byArt[k].netas)+'</span></div>';
+          '<span class="n">'+esc(k)+'</span>'+
+          '<span class="t">'+euros(byArt[k].netas)+'<br><span class="u">'+numFmt(byArt[k].unid)+' uds</span></span></div>';
       }).join('')
     : '<div class="empty">Sin datos en este periodo.</div>';
 
@@ -2686,16 +2748,40 @@ function renderArtReport(){
     stackedChartSVG(labels, series, document.getElementById('art-tipo').value);
 
   // tabla EXPORTAR: todos los artículos vendidos, orden alfabético
-  var alfab = Object.keys(byArt).sort(function(a,b){ return a.localeCompare(b,'es'); });
+  var alfab = Object.keys(byArt);
+  var dirA = ART_ORDEN.dir, campo = ART_ORDEN.campo;
+  alfab.sort(function(a,b){
+    var oa = byArt[a], ob = byArt[b], r;
+    if(campo==='unid') r = oa.unid - ob.unid;
+    else if(campo==='netas') r = oa.netas - ob.netas;
+    else if(campo==='coste') r = oa.coste - ob.coste;
+    else if(campo==='benef') r = (oa.netas-oa.coste) - (ob.netas-ob.coste);
+    else r = a.localeCompare(b,'es');
+    if(r===0) r = a.localeCompare(b,'es');
+    return r*dirA;
+  });
   var tEl = document.getElementById('art-table');
   if(!alfab.length){ tEl.innerHTML = '<div class="empty">Sin datos en este periodo.</div>'; }
   else{
-    tEl.innerHTML = '<table>'+thRow(['Art\u00edculo \u2191','Art\u00edculos vendidos','Ventas netas','Costo de los bienes','Beneficio bruto'])+
+    var fl = function(c){ return campo===c ? (dirA===1?' \u2191':' \u2193') : ''; };
+    var cab = '<tr>'+[['nombre','Art\u00edculo'],['unid','Art\u00edculos vendidos'],['netas','Ventas netas'],
+      ['coste','Costo de los bienes'],['benef','Beneficio bruto']].map(function(c){
+        return '<th class="art-th-sort" data-s="'+c[0]+'"><div class="colres">'+c[1]+fl(c[0])+'</div></th>';
+      }).join('')+'</tr>';
+    tEl.innerHTML = '<table>'+cab+
       alfab.map(function(k){
         var o = byArt[k];
         return '<tr><td>'+esc(k)+'</td><td>'+numFmt(o.unid)+'</td><td>'+euros(o.netas)+'</td><td>'+
           euros(o.coste)+'</td><td>'+euros(o.netas-o.coste)+'</td></tr>';
       }).join('')+'</table>';
+    Array.prototype.forEach.call(tEl.querySelectorAll('.art-th-sort'), function(th){
+      th.addEventListener('click', function(){
+        var c = th.dataset.s;
+        if(ART_ORDEN.campo===c) ART_ORDEN.dir = -ART_ORDEN.dir;
+        else { ART_ORDEN.campo = c; ART_ORDEN.dir = (c==='nombre' ? 1 : -1); }
+        renderArtReport();
+      });
+    });
   }
   ART_TABLE_ROWS = alfab.map(function(k){
     var o = byArt[k];
