@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>DELICIOSO v30</title>
+<title>DELICIOSO v32</title>
 <meta name="theme-color" content="#1E7B34">
 <meta name="description" content="Gestión de ferias, ventas y stock para DELICOSO">
 <link rel="manifest" href="manifest.json">
@@ -236,6 +236,7 @@ body{padding-top:70px!important;}
   opacity:.6;cursor:pointer;flex-shrink:0;}
 .cp-lapiz:hover{opacity:1;}
 .cp-lapiz.on{opacity:1;color:var(--text-accent);}
+.cp-vacio{color:var(--text-muted);font-style:italic;}
 .cp-num{font-size:10px;color:var(--text-muted);text-align:right;padding-right:2px;font-variant-numeric:tabular-nums;}
 .cp-row.editando-fila{background:var(--bg-accent);border-radius:6px;}
 .cp-row .del.viva{color:var(--text-danger);opacity:1;}
@@ -359,7 +360,7 @@ select[multiple]{height:auto;min-height:96px;}
     <span></span><span></span><span></span>
   </button>
   <span class="lv-title" id="lv-title">Registrar venta</span>
-  <span class="lv-ver" id="version-badge">v30</span>
+  <span class="lv-ver" id="version-badge">v32</span>
   <img id="logo-img" alt="Logo DELICOSO">
 </div>
 
@@ -636,12 +637,6 @@ select[multiple]{height:auto;min-height:96px;}
     <div id="dash-table"></div>
   </div>
 
-  <div class="card">
-    <details id="dash-art-det">
-      <summary style="cursor:pointer;"><h2 style="display:inline;">Ventas por artículo</h2></summary>
-      <div id="dash-articulos" style="margin-top:10px;"><div class="empty">Sin datos todavía.</div></div>
-    </details>
-  </div>
   <div class="card">
     <details id="dash-fer-det">
       <summary style="cursor:pointer;"><h2 style="display:inline;">Ventas por feria</h2></summary>
@@ -1971,8 +1966,8 @@ function renderCompra(){
       if(String(it.comp||'').trim()!=='') pedidos++;
       var editando = COMPRA.editItem === (gi+':'+ii);
       var nombre = editando
-        ? '<input class="nomedit" data-act="nombre" value="'+esc(it.n)+'">'
-        : '<div class="nom" data-act="toggle">'+esc(it.n)+'</div>';
+        ? '<input class="nomedit" data-act="nombre" value="'+esc(it.n)+'" placeholder="Nombre del art\u00edculo\u2026">'
+        : '<div class="nom" data-act="toggle">'+(it.n ? esc(it.n) : '<span class="cp-vacio">(sin nombre \u2014 toca el l\u00e1piz)</span>')+'</div>';
       return '<div class="cp-row'+(it.hecho?' hecho':'')+(editando?' editando-fila':'')+'" data-g="'+gi+'" data-i="'+ii+'">'+
         '<span class="cp-num">'+(ii+1)+'</span>'+
         '<button class="cp-handle" type="button" data-act="mover" aria-label="Mover art\u00edculo"><span></span><span></span><span></span></button>'+
@@ -2063,7 +2058,7 @@ document.getElementById('cp-lista').addEventListener('click', function(e){
   }
   if(act==='add-item'){
     COMPRA.cerradas[COMPRA.data[gi].tienda] = false;
-    COMPRA.data[gi].items.push({n:'Nuevo art\u00edculo', c:'', comp:'', hecho:false});
+    COMPRA.data[gi].items.push({n:'', c:'', comp:'', hecho:false});
     COMPRA.editItem = gi+':'+(COMPRA.data[gi].items.length-1);
     saveCompra(); renderCompra(); return;
   }
@@ -2583,46 +2578,6 @@ function renderDash(){
     return [k, o.brutas, o.coste, ben, (o.brutas?Math.round(ben/o.brutas*100):0)+'%'];
   });
 
-  // por artículo
-  var byArt = {};
-  ventas.forEach(function(v){
-    var k=(v.articulo||'').trim();
-    if(!byArt[k]) byArt[k] = {unid:0, netas:0, coste:0};
-    byArt[k].unid  += (v.unid||0);
-    byArt[k].netas += (v.unid||0)*(v.precio||0);
-    byArt[k].coste += (v.unid||0)*costeArt(k);
-  });
-  var artEl = document.getElementById('dash-articulos');
-  var artKeys = Object.keys(byArt);
-  artKeys.sort(function(a,b){
-    var oa=byArt[a], ob=byArt[b], r;
-    if(DASH_ART_ORDEN.campo==='unid') r = oa.unid-ob.unid;
-    else if(DASH_ART_ORDEN.campo==='netas') r = oa.netas-ob.netas;
-    else if(DASH_ART_ORDEN.campo==='benef') r = (oa.netas-oa.coste)-(ob.netas-ob.coste);
-    else r = a.localeCompare(b,'es');
-    if(r===0) r = a.localeCompare(b,'es');
-    return r*DASH_ART_ORDEN.dir;
-  });
-  if(!artKeys.length){ artEl.innerHTML = '<div class="empty">Sin datos en este periodo.</div>'; }
-  else{
-    var fl2 = function(c){ return DASH_ART_ORDEN.campo===c ? (DASH_ART_ORDEN.dir===1?' \u2191':' \u2193') : ''; };
-    var cab2 = '<tr>'+[['nombre','Art\u00edculo'],['unid','Uds'],['netas','Ventas netas'],['benef','Beneficio bruto']]
-      .map(function(c){ return '<th class="art-th-sort" data-s="'+c[0]+'"><div class="colres">'+c[1]+fl2(c[0])+'</div></th>'; }).join('')+'</tr>';
-    artEl.innerHTML = '<table>'+cab2+artKeys.map(function(k){
-      var o = byArt[k];
-      return '<tr><td>'+esc(k)+'</td><td>'+numFmt(o.unid)+'</td><td>'+euros(o.netas)+'</td><td>'+euros(o.netas-o.coste)+'</td></tr>';
-    }).join('')+'</table>';
-    Array.prototype.forEach.call(artEl.querySelectorAll('.art-th-sort'), function(th){
-      th.addEventListener('click', function(){
-        var c = th.dataset.s;
-        if(DASH_ART_ORDEN.campo===c) DASH_ART_ORDEN.dir = -DASH_ART_ORDEN.dir;
-        else { DASH_ART_ORDEN.campo = c; DASH_ART_ORDEN.dir = (c==='nombre' ? 1 : -1); }
-        renderDash();
-      });
-    });
-  }
-
-  // por feria
   var byFeria = {};
   ventas.forEach(function(v){
     var k = v.feriaNombre||'(sin feria)';
@@ -2639,7 +2594,6 @@ function renderDash(){
 }
 
 var DASH_TABLE_ROWS = [];
-var DASH_ART_ORDEN = {campo:'nombre', dir:1};
 document.getElementById('dash-export').addEventListener('click', function(){
   var head = ['Fecha','Ventas brutas','Costo de bienes','Beneficio bruto','Margen'];
   var csv = [head.join(';')].concat(DASH_TABLE_ROWS.map(function(r){
