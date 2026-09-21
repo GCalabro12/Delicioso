@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>DELICIOSO v42</title>
+<title>DELICIOSO v43</title>
 <meta name="theme-color" content="#1E7B34">
 <meta name="description" content="Gestión de ferias, ventas y stock para DELICOSO">
 <link rel="manifest" href="manifest.json">
@@ -297,9 +297,14 @@ body{padding-top:70px!important;}
 
 /* ---------- Llevar y traer (misma plantilla, columna de tiempo + voz) ---------- */
 #p-llevar .cp-tienda-head .nom{color:var(--text-primary);font-weight:700;}
-.lv-tarea-row{display:grid;grid-template-columns:20px 26px 24px 1fr 62px 30px;gap:8px;align-items:center;
-  padding:5px 4px;border-bottom:0.5px solid var(--border);background:var(--surface-2);
-  border-left:3px solid transparent;}
+.lv-tarea-row{display:flex;flex-direction:column;gap:5px;padding:8px 4px;
+  border-bottom:0.5px solid var(--border);background:var(--surface-2);border-left:3px solid transparent;}
+.lv-tarea-top{display:flex;align-items:flex-start;gap:8px;}
+.lv-tarea-top .cp-num{padding-top:2px;flex-shrink:0;}
+.lv-tarea-top .nom{flex:1;font-size:13.5px;line-height:1.4;padding-top:1px;}
+.lv-tarea-top input.nomedit{flex:1;}
+.lv-tarea-bottom{display:flex;align-items:center;gap:8px;padding-left:24px;}
+.lv-tarea-bottom .lv-tiempo-grp{margin-left:auto;}
 .lv-tarea-row.hecho{opacity:.42;}
 .lv-tarea-row.hecho .nom{text-decoration:line-through;background:var(--surface-1);border-radius:4px;}
 .lv-tarea-row.leyendo{background:var(--bg-danger);border-radius:6px;border-left:3px solid var(--text-danger);
@@ -307,16 +312,13 @@ body{padding-top:70px!important;}
 .lv-tiempo-grp{display:flex;align-items:center;gap:3px;}
 .lv-tarea-row input.lv-tiempo{height:30px;width:30px;font-size:13px;text-align:center;padding:0;flex-shrink:0;}
 .lv-tiempo-grp .suf{font-size:11px;color:var(--text-secondary);flex-shrink:0;}
-.lv-cuenta{grid-column:1/-1;font-size:12px;color:var(--text-danger);font-weight:500;padding:2px 4px 6px;}
+.lv-cuenta{font-size:12px;color:var(--text-danger);font-weight:500;padding:0 4px 2px 24px;}
 .lv-voz-btn{background:transparent;border:none;color:var(--text-accent);font-size:13px;padding:0 4px;height:30px;}
 .lv-voz-btn.on{color:var(--text-danger);}
 .lv-total-fase{display:flex;justify-content:flex-end;gap:6px;padding:8px 8px 2px;font-size:12.5px;
   font-weight:600;color:var(--text-primary);border-top:0.5px solid var(--border);margin-top:2px;}
 .lv-total-general{display:flex;justify-content:flex-end;gap:8px;padding:14px 8px 2px;font-size:15px;
   font-weight:700;color:var(--text-primary);}
-@media (max-width:640px){
-  .lv-tarea-row{grid-template-columns:18px 22px 22px 1fr 56px 26px;}
-}
 @media (max-width:640px){
   .in-row{flex-direction:column;gap:6px;}
   .in-side{flex-direction:row;align-items:center;max-width:100%;}
@@ -417,7 +419,7 @@ select[multiple]{height:auto;min-height:96px;}
     <span></span><span></span><span></span>
   </button>
   <span class="lv-title" id="lv-title">Registrar venta</span>
-  <span class="lv-ver" id="version-badge">v42</span>
+  <span class="lv-ver" id="version-badge">v43</span>
   <img id="logo-img" alt="Logo DELICOSO">
 </div>
 
@@ -2385,9 +2387,9 @@ var MUSICA = [
    url:'https://www.youtube.com/watch?v=4csY_55kSpo'},
   {emoji:'\u2615', titulo:'Ambiente tranquilo (caf\u00e9/jazz)', desc:'Jazz suave de fondo, para un ritmo m\u00e1s relajado',
    url:'https://www.youtube.com/watch?v=B7ha39Q0r3I'},
-  {emoji:'🎶', titulo:'A\u00f1adido por ti', desc:'Revisa el t\u00edtulo y la duraci\u00f3n en YouTube antes de usarlo',
+  {emoji:'🎶', titulo:'V\u00eddeo de YouTube', desc:'No he podido confirmar el t\u00edtulo desde aqu\u00ed \u2014 rev\u00edsalo en YouTube antes de usarlo',
    url:'https://www.youtube.com/watch?v=o13sAY2E22A'},
-  {emoji:'📃', titulo:'Lista de reproducci\u00f3n a\u00f1adida por ti', desc:'Playlist \u2014 se reproduce seguida, revisa el orden en YouTube',
+  {emoji:'📃', titulo:'Lista de reproducci\u00f3n de YouTube', desc:'Playlist \u2014 se reproduce seguida, revisa el orden en YouTube',
    url:'https://www.youtube.com/watch?v=0zQzAPooOKg&list=PLAOEcj7OK9pf0zEXAVSBxYrWE58WRRgmL'}
 ];
 
@@ -2543,12 +2545,16 @@ function renderLlevar(){
         ? '<input class="nomedit" data-act="texto" value="'+esc(it.texto)+'" placeholder="Descripci\u00f3n de la tarea\u2026">'
         : '<div class="nom" data-act="toggle">'+(it.texto ? esc(it.texto) : '<span class="cp-vacio">(sin texto \u2014 toca el l\u00e1piz)</span>')+'</div>';
       var fila = '<div class="lv-tarea-row'+(it.hecho?' hecho':'')+(leyendo?' leyendo':'')+'" data-f="'+fi+'" data-i="'+ii+'">'+
-        '<span class="cp-num">'+(ii+1)+'</span>'+
-        '<button class="cp-handle" type="button" data-act="mover" aria-label="Mover tarea"><span></span><span></span><span></span></button>'+
-        '<button class="cp-lapiz'+(editando?' on':'')+'" type="button" data-act="lapiz" aria-label="Editar texto">\u270f\ufe0f</button>'+
-        nombre+
-        '<span class="lv-tiempo-grp"><input class="lv-tiempo" data-act="minutos" value="'+esc(String(it.minutos||''))+'" placeholder="" inputmode="numeric" maxlength="2"><span class="suf">min</span></span>'+
-        ((edit || editando) ? '<button class="del'+(editando?' viva':'')+'" type="button" data-act="del-item" aria-label="Borrar tarea">\u2715</button>' : '<span></span>')+
+        '<div class="lv-tarea-top">'+
+          '<span class="cp-num">'+(ii+1)+'</span>'+
+          nombre+
+        '</div>'+
+        '<div class="lv-tarea-bottom">'+
+          '<button class="cp-handle" type="button" data-act="mover" aria-label="Mover tarea"><span></span><span></span><span></span></button>'+
+          '<button class="cp-lapiz'+(editando?' on':'')+'" type="button" data-act="lapiz" aria-label="Editar texto">\u270f\ufe0f</button>'+
+          '<span class="lv-tiempo-grp"><input class="lv-tiempo" data-act="minutos" value="'+esc(String(it.minutos||''))+'" placeholder="" inputmode="numeric" maxlength="2"><span class="suf">min</span></span>'+
+          ((edit || editando) ? '<button class="del'+(editando?' viva':'')+'" type="button" data-act="del-item" aria-label="Borrar tarea">\u2715</button>' : '')+
+        '</div>'+
       '</div>';
       if(leyendo) fila += '<div class="lv-cuenta" id="lv-cuenta"></div>';
       return fila;
