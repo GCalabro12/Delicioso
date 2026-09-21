@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>DELICIOSO v40</title>
+<title>DELICIOSO v41</title>
 <meta name="theme-color" content="#1E7B34">
 <meta name="description" content="Gestión de ferias, ventas y stock para DELICOSO">
 <link rel="manifest" href="manifest.json">
@@ -81,6 +81,15 @@ button.small{height:28px;padding:0 10px;font-size:12px;}
 .lv-title{font-size:17px;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;}
 .lv-topbar img{width:32px;height:32px;border-radius:50%;background:#fff;object-fit:cover;flex-shrink:0;margin-right:6px;}
 body{padding-top:70px!important;}
+
+.lv-banner{display:flex;align-items:center;gap:10px;background:var(--bg-accent);border-bottom:0.5px solid var(--border);
+  padding:10px 14px;margin:-16px -16px 16px -16px;font-size:13px;}
+.lv-banner-ico{flex-shrink:0;}
+.lv-banner-txt{flex:1;color:var(--text-primary);cursor:pointer;}
+.lv-banner-x{background:transparent;border:none;color:var(--text-secondary);font-size:14px;
+  width:26px;height:26px;padding:0;flex-shrink:0;border-radius:50%;}
+.lv-banner-x:hover{background:var(--surface-1);}
+.lv-banner.oculto{display:none;}
 
 .lv-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;
   transition:opacity .2s ease;z-index:45;}
@@ -399,7 +408,7 @@ select[multiple]{height:auto;min-height:96px;}
     <span></span><span></span><span></span>
   </button>
   <span class="lv-title" id="lv-title">Registrar venta</span>
-  <span class="lv-ver" id="version-badge">v40</span>
+  <span class="lv-ver" id="version-badge">v41</span>
   <img id="logo-img" alt="Logo DELICOSO">
 </div>
 
@@ -497,6 +506,12 @@ select[multiple]{height:auto;min-height:96px;}
 
   </div>
 </nav>
+
+<div class="lv-banner" id="lv-banner">
+  <span class="lv-banner-ico">📌</span>
+  <span class="lv-banner-txt" id="lv-banner-txt">Recuerda revisar las inscripciones de feria pendientes</span>
+  <button class="lv-banner-x" id="lv-banner-x" type="button" aria-label="Cerrar aviso">✕</button>
+</div>
 
 <div class="panel active" id="p-inscripcion">
   <div class="card">
@@ -1341,6 +1356,7 @@ function switchTab(name){
   if(name==='analisis') renderArtReport();
   if(name==='categorias') renderCatReport();
   if(name==='sync') renderSync();
+  try{ localStorage.setItem('delicoso-ultima-pestana', name); }catch(e){}
   closeDrawer();
   window.scrollTo(0,0);
 }
@@ -1811,7 +1827,7 @@ document.getElementById('in-cargar').addEventListener('click', function(){
 });
 document.getElementById('in-borrar').addEventListener('click', function(){
   if(!confirm('\u00bfBorrar las ferias cargadas?')) return;
-  INSC.rows = []; inscSave(); renderInsc();
+  INSC.rows = []; inscSave(); renderInsc(); actualizarBannerFerias();
 });
 document.getElementById('in-filtro').addEventListener('change', function(){ INSC.filtro=this.value; renderInsc(); });
 document.getElementById('in-anio').addEventListener('change', function(){ INSC.anio=this.value; renderInsc(); });
@@ -1879,7 +1895,7 @@ async function inscSync(silencioso){
         waze: r.waze||'', grupo: r.grupo||'', url: r.url||''
       };
     });
-    inscSave(); renderInsc();
+    inscSave(); renderInsc(); actualizarBannerFerias();
     if(msg){
       msg.style.display='block'; msg.style.color='var(--text-success)';
       msg.textContent = INSC.rows.length+' ferias le\u00eddas de Notion.';
@@ -3943,7 +3959,44 @@ function renderAll(){
 }
 
 renderAll();
-switchTab('inscripcion');
+var lvPestanaInicial = 'inscripcion';
+try{
+  var lvGuardada = localStorage.getItem('delicoso-ultima-pestana');
+  if(lvGuardada && document.getElementById('p-'+lvGuardada)) lvPestanaInicial = lvGuardada;
+}catch(e){}
+switchTab(lvPestanaInicial);
+
+function actualizarBannerFerias(){
+  var el = document.getElementById('lv-banner');
+  var txt = document.getElementById('lv-banner-txt');
+  if(!el || !txt || el.classList.contains('oculto-manual')) return;
+  if(typeof INSC==='undefined' || !INSC.rows || !INSC.rows.length){
+    txt.textContent = 'Recuerda revisar las inscripciones de feria pendientes';
+    el.classList.remove('oculto');
+    return;
+  }
+  var hoy = dIso(new Date());
+  var cfg = inscCfg();
+  var pendientes = INSC.rows.filter(function(r){
+    var sit = inscSituacion(r);
+    if(sit==='confirmada' || sit==='expuse' || sit==='descartada' || sit==='otra') return false;
+    var ap = inscApertura(r);
+    if(!ap.fecha) return false;
+    return diasEntre(hoy, ap.fecha) <= cfg.margen;
+  });
+  if(!pendientes.length){ el.classList.add('oculto'); return; }
+  txt.textContent = pendientes.length===1
+    ? 'Recuerda inscribirte: '+pendientes[0].feria
+    : 'Recuerda inscribirte en '+pendientes.length+' ferias pendientes';
+  el.classList.remove('oculto');
+}
+document.getElementById('lv-banner-x').addEventListener('click', function(){
+  document.getElementById('lv-banner').classList.add('oculto','oculto-manual');
+});
+document.getElementById('lv-banner-txt').addEventListener('click', function(){
+  switchTab('inscripcion');
+});
+actualizarBannerFerias();
 initDb();
 </script>
 
