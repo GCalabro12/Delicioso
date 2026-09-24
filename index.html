@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>DELICIOSO v43</title>
+<title>DELICIOSO v46</title>
 <meta name="theme-color" content="#1E7B34">
 <meta name="description" content="Gestión de ferias, ventas y stock para DELICOSO">
 <link rel="manifest" href="manifest.json">
@@ -218,6 +218,7 @@ body{padding-top:70px!important;}
   border-bottom:0.5px solid var(--border);font-size:11px;color:var(--text-secondary);
   text-transform:uppercase;letter-spacing:.3px;}
 .cp-head span:nth-child(5),.cp-head span:nth-child(6){text-align:center;}
+#p-compra .cp-head{display:none;}
 
 .cp-tienda{margin-top:14px;}
 .cp-tienda-head{display:flex;align-items:center;gap:8px;background:var(--bg-accent);
@@ -235,8 +236,16 @@ body{padding-top:70px!important;}
 .cp-tienda-edit input{height:32px;font-size:13px;}
 .cp-items{display:block;}
 .cp-tienda.cerrada .cp-items{display:none;}
-.cp-row{display:grid;grid-template-columns:20px 26px 24px 1fr 104px 104px 30px;gap:8px;align-items:center;
-  padding:5px 4px;border-bottom:0.5px solid var(--border);background:var(--surface-2);}
+.cp-row{display:flex;flex-direction:column;gap:5px;padding:8px 4px;
+  border-bottom:0.5px solid var(--border);background:var(--surface-2);}
+.cp-row-top{display:flex;align-items:flex-start;gap:8px;}
+.cp-row-top .cp-num{padding-top:2px;flex-shrink:0;width:18px;}
+.cp-row-top .nom{flex:1;font-size:13.5px!important;line-height:1.4;}
+.cp-row-top input.nomedit{flex:1;}
+.cp-row-bottom{display:flex;align-items:center;gap:8px;padding-left:26px;}
+.cp-cant{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-secondary);}
+.cp-cant input{width:64px;}
+.cp-row-bottom .cp-cant:first-of-type{margin-left:auto;}
 
 .cp-handle{background:transparent;border:none;padding:0;width:26px;height:30px;cursor:grab;touch-action:none;
   display:flex;flex-direction:column;justify-content:center;align-items:center;gap:3px;flex-shrink:0;}
@@ -277,6 +286,7 @@ body{padding-top:70px!important;}
 .mu-info{flex:1;min-width:0;}
 .mu-info .t{font-weight:500;font-size:14px;}
 .mu-info .d{font-size:12px;color:var(--text-secondary);margin-top:2px;}
+.mu-in{width:100%;height:32px;font-size:13px;}
 .mu-open{flex-shrink:0;height:34px;padding:0 14px;border-radius:20px;background:#FF0000;color:#fff;
   border:none;font-size:12px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:5px;}
 
@@ -343,11 +353,7 @@ body{padding-top:70px!important;}
 .cp-row.hecho .nom{text-decoration:line-through;background:var(--surface-1);border-radius:4px;}
 .cp-row.hecho input{background:var(--surface-1);color:var(--text-muted);}
 @media (max-width:640px){
-  .cp-head{grid-template-columns:16px 22px 22px 1fr 60px 60px 26px;}
-
-  .cp-row{grid-template-columns:16px 22px 22px 1fr 60px 60px 26px;}
-
-  .cp-row .nom{font-size:12px;}
+  .cp-cant input{width:54px;}
   .cp-row input{height:28px;font-size:12px;}
   .cp-tienda-edit{grid-template-columns:1fr;}
 }
@@ -419,7 +425,7 @@ select[multiple]{height:auto;min-height:96px;}
     <span></span><span></span><span></span>
   </button>
   <span class="lv-title" id="lv-title">Registrar venta</span>
-  <span class="lv-ver" id="version-badge">v43</span>
+  <span class="lv-ver" id="version-badge">v46</span>
   <img id="logo-img" alt="Logo DELICOSO">
 </div>
 
@@ -1933,7 +1939,7 @@ function renderInscAvisos(){
     if(!ap.fecha) return;
     var d = diasEntre(hoy, ap.fecha);
     if(d > cfg.margen) return;                 // aún queda mucho
-    if(ap.tipo==='real' && d < -60) return;    // se pasó hace demasiado
+    if(d < 0) return;                          // ya venció: no se muestra
     if(ap.tipo==='estimada' && sit==='confirmada') return; // ya está dentro
     urgentes.push({r:r, ap:ap, d:d, sit:sit});
   });
@@ -1974,7 +1980,7 @@ function inscICS(){
     var ap = inscApertura(r);
     var prox = inscProxEdicion(r);
 
-    if(ap.fecha && ap.fecha >= dAddDays(hoy,-30) && sit!=='confirmada'){
+    if(ap.fecha && ap.fecha >= hoy && sit!=='confirmada'){
       var est = ap.tipo==='estimada';
       lineas.push('BEGIN:VEVENT','UID:'+base+'-insc@delicoso',
         'DTSTAMP:'+comp(hoy)+'T080000Z',
@@ -2387,23 +2393,61 @@ var MUSICA = [
    url:'https://www.youtube.com/watch?v=4csY_55kSpo'},
   {emoji:'\u2615', titulo:'Ambiente tranquilo (caf\u00e9/jazz)', desc:'Jazz suave de fondo, para un ritmo m\u00e1s relajado',
    url:'https://www.youtube.com/watch?v=B7ha39Q0r3I'},
-  {emoji:'🎶', titulo:'V\u00eddeo de YouTube', desc:'No he podido confirmar el t\u00edtulo desde aqu\u00ed \u2014 rev\u00edsalo en YouTube antes de usarlo',
+  {emoji:'🎶', titulo:'V\u00eddeo de YouTube', desc:'Toca el l\u00e1piz para ponerle el nombre que quieras',
    url:'https://www.youtube.com/watch?v=o13sAY2E22A'},
-  {emoji:'📃', titulo:'Lista de reproducci\u00f3n de YouTube', desc:'Playlist \u2014 se reproduce seguida, revisa el orden en YouTube',
+  {emoji:'📃', titulo:'Lista de reproducci\u00f3n de YouTube', desc:'Playlist \u2014 toca el l\u00e1piz para ponerle el nombre que quieras',
    url:'https://www.youtube.com/watch?v=0zQzAPooOKg&list=PLAOEcj7OK9pf0zEXAVSBxYrWE58WRRgmL'}
 ];
+
+var MU_EDIT = -1;
+function muCargar(){
+  try{ return JSON.parse(localStorage.getItem('delicoso-musica-textos')||'{}'); }catch(e){ return {}; }
+}
+function muGuardar(o){ try{ localStorage.setItem('delicoso-musica-textos', JSON.stringify(o)); }catch(e){} }
 
 function renderMusica(){
   var el = document.getElementById('mu-lista');
   if(!el) return;
-  el.innerHTML = MUSICA.map(function(m){
+  var propios = muCargar();
+  el.innerHTML = MUSICA.map(function(m, i){
+    var p = propios[m.url] || {};
+    var titulo = p.titulo || m.titulo;
+    var desc = (p.desc!==undefined) ? p.desc : m.desc;
+    var info = (MU_EDIT===i)
+      ? '<div class="mu-info">'+
+          '<input class="mu-in" data-mu="titulo" data-i="'+i+'" value="'+esc(titulo)+'" placeholder="T\u00edtulo">'+
+          '<input class="mu-in" data-mu="desc" data-i="'+i+'" value="'+esc(desc)+'" placeholder="Descripci\u00f3n (opcional)" style="margin-top:4px;">'+
+        '</div>'
+      : '<div class="mu-info"><div class="t">'+esc(titulo)+'</div>'+(desc?'<div class="d">'+esc(desc)+'</div>':'')+'</div>';
     return '<div class="mu-card">'+
       '<div class="mu-ico">'+m.emoji+'</div>'+
-      '<div class="mu-info"><div class="t">'+esc(m.titulo)+'</div><div class="d">'+esc(m.desc)+'</div></div>'+
+      info+
+      '<button class="cp-lapiz'+(MU_EDIT===i?' on':'')+'" type="button" data-mu-lapiz="'+i+'" aria-label="Editar t\u00edtulo">'+(MU_EDIT===i?'\u2713':'\u270f\ufe0f')+'</button>'+
       '<a class="mu-open" href="'+esc(m.url)+'" target="_blank" rel="noopener">\u25b6 Abrir</a>'+
     '</div>';
   }).join('');
+  if(MU_EDIT>=0){
+    var inp = el.querySelector('input[data-mu="titulo"][data-i="'+MU_EDIT+'"]');
+    if(inp){ inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+  }
 }
+document.getElementById('mu-lista').addEventListener('click', function(e){
+  var b = e.target.closest('[data-mu-lapiz]'); if(!b) return;
+  var i = +b.dataset.muLapiz;
+  MU_EDIT = (MU_EDIT===i) ? -1 : i;
+  renderMusica();
+});
+document.getElementById('mu-lista').addEventListener('input', function(e){
+  var campo = e.target.dataset.mu; if(!campo) return;
+  var m = MUSICA[+e.target.dataset.i]; if(!m) return;
+  var o = muCargar();
+  o[m.url] = o[m.url] || {};
+  o[m.url][campo] = e.target.value;
+  muGuardar(o);
+});
+document.getElementById('mu-lista').addEventListener('keydown', function(e){
+  if(e.key==='Enter' && e.target.dataset && e.target.dataset.mu){ e.preventDefault(); MU_EDIT=-1; renderMusica(); }
+});
 
 /* ============ LLEVAR Y TRAER (checklist con lectura por voz) ============ */
 var LLEVAR_DEFECTO = [
@@ -2943,13 +2987,17 @@ function renderCompra(){
         ? '<input class="nomedit" data-act="nombre" value="'+esc(it.n)+'" placeholder="Nombre del art\u00edculo\u2026">'
         : '<div class="nom" data-act="toggle">'+(it.n ? esc(it.n) : '<span class="cp-vacio">(sin nombre \u2014 toca el l\u00e1piz)</span>')+'</div>';
       return '<div class="cp-row'+(it.hecho?' hecho':'')+(editando?' editando-fila':'')+'" data-g="'+gi+'" data-i="'+ii+'">'+
-        '<span class="cp-num">'+(ii+1)+'</span>'+
-        '<button class="cp-handle" type="button" data-act="mover" aria-label="Mover art\u00edculo"><span></span><span></span><span></span></button>'+
-        '<button class="cp-lapiz'+(editando?' on':'')+'" type="button" data-act="lapiz" aria-label="Editar texto">\u270f\ufe0f</button>'+
-        nombre+
-        '<input data-act="nec" value="'+esc(String(it.c===undefined||it.c===null?'':it.c))+'">'+
-        '<input data-act="comp" value="'+esc(String(it.comp||''))+'" placeholder="\u2014">'+
-        ((COMPRA.edit || editando) ? '<button class="del'+(editando?' viva':'')+'" type="button" data-act="del-item" aria-label="Borrar art\u00edculo">\u2715</button>' : '<span></span>')+
+        '<div class="cp-row-top">'+
+          '<span class="cp-num">'+(ii+1)+'</span>'+
+          nombre+
+        '</div>'+
+        '<div class="cp-row-bottom">'+
+          '<button class="cp-handle" type="button" data-act="mover" aria-label="Mover art\u00edculo"><span></span><span></span><span></span></button>'+
+          '<button class="cp-lapiz'+(editando?' on':'')+'" type="button" data-act="lapiz" aria-label="Editar texto">\u270f\ufe0f</button>'+
+          '<label class="cp-cant">Necesaria <input data-act="nec" value="'+esc(String(it.c===undefined||it.c===null?'':it.c))+'"></label>'+
+          '<label class="cp-cant">Comprar <input data-act="comp" value="'+esc(String(it.comp||''))+'" placeholder="\u2014"></label>'+
+          ((COMPRA.edit || editando) ? '<button class="del'+(editando?' viva':'')+'" type="button" data-act="del-item" aria-label="Borrar art\u00edculo">\u2715</button>' : '')+
+        '</div>'+
       '</div>';
     }).join('');
 
@@ -4005,7 +4053,8 @@ function actualizarBannerFerias(){
     if(sit==='confirmada' || sit==='expuse' || sit==='descartada' || sit==='otra') return false;
     var ap = inscApertura(r);
     if(!ap.fecha) return false;
-    return diasEntre(hoy, ap.fecha) <= cfg.margen;
+    var dd = diasEntre(hoy, ap.fecha);
+    return dd >= 0 && dd <= cfg.margen;
   });
   if(!pendientes.length){ el.classList.add('oculto'); return; }
   txt.textContent = pendientes.length===1
@@ -4026,7 +4075,9 @@ initDb();
 <script>
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('sw.js').catch(function(){});
+    navigator.serviceWorker.register('sw.js', {updateViaCache:'none'})
+      .then(function(reg){ reg.update(); })
+      .catch(function(){});
   });
 }
 </script>
