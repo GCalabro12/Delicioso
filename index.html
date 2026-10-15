@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>DELICIOSO v50</title>
+<title>DELICIOSO v51</title>
 <meta name="theme-color" content="#1E7B34">
 <meta name="description" content="Gestión de ferias, ventas y stock para DELICOSO">
 <link rel="manifest" href="manifest.json">
@@ -475,7 +475,8 @@ select[multiple]{height:auto;min-height:96px;}
     <span></span><span></span><span></span>
   </button>
   <span class="lv-title" id="lv-title">Registrar venta</span>
-  <span class="lv-ver" id="version-badge">v50</span>
+  <span class="lv-ver" id="version-badge">v51</span>
+  <span id="grow-panel-boton" style="display:flex;flex-shrink:0"></span>
   <img id="logo-img" alt="Logo DELICOSO">
 </div>
 
@@ -2055,6 +2056,7 @@ document.getElementById('in-sync').addEventListener('click', function(){ inscSyn
 
 /* --- avisos: inscripciones que abren pronto / se pasan --- */
 function renderInscAvisos(){
+  gpResumen();
   var el = document.getElementById('in-avisos'); if(!el) return;
   var cfg = inscCfg(), hoy = dIso(new Date());
   var urgentes = [];
@@ -2088,6 +2090,38 @@ function renderInscAvisos(){
     '<div class="hint" style="margin-top:6px;">Las marcadas como <em>estimado</em> no tienen fecha de inscripci\u00f3n en Notion: se calculan '+cfg.antelacion+' d\u00edas antes de la feria. Ponles la fecha real en la columna \u201cFechas Estado\u201d cuando la sepas.</div>'+
     '</div>';
 }
+
+/* --- Grow Panel: resumen para su tarjeta (v51). Mismas reglas que los avisos de inscripción --- */
+function gpResumen(){
+  if(!window.GrowPanel || !window.GrowPanel.resumen) return;
+  try{
+    var cfg = inscCfg(), hoy = dIso(new Date()), pend = 0, conf = 0, prox = null;
+    INSC.rows.forEach(function(r){
+      var sit = inscSituacion(r);
+      if(sit==='descartada' || sit==='otra') return;
+      var ap = inscApertura(r);
+      if(ap.fecha){
+        var d = diasEntre(hoy, ap.fecha);
+        if(d>=0 && d<=cfg.margen && !(ap.tipo==='estimada' && sit==='confirmada')) pend++;
+      }
+      if(sit==='confirmada'){
+        var e = inscProxEdicion(r);
+        if(e.ini && e.ini>=hoy){ conf++; if(!prox || e.ini<prox.ini) prox = {feria:r.feria, ini:e.ini}; }
+      }
+    });
+    window.GrowPanel.resumen({
+      estado: pend ? 'aviso' : 'ok',
+      mensaje: pend ? (pend===1 ? '1 inscripción de feria por hacer' : pend+' inscripciones de feria por hacer')
+                    : (prox ? 'Próxima feria: '+prox.feria+' · '+dCorto(prox.ini) : 'Sin inscripciones pendientes'),
+      cifras: [
+        {valor: pend, etiqueta: pend===1 ? 'inscripción pendiente' : 'inscripciones pendientes'},
+        {valor: conf, etiqueta: conf===1 ? 'feria confirmada' : 'ferias confirmadas'}
+      ],
+      version: (document.getElementById('version-badge')||{}).textContent || ''
+    });
+  }catch(e){}
+}
+window.addEventListener('growpanel-listo', gpResumen);
 
 /* --- exportar alarmas al calendario (.ics) --- */
 function inscICS(){
@@ -4472,5 +4506,6 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
+<script src="https://gcalabro12.github.io/Grow-Panel/grow-panel-boton.js" data-app="delicioso" data-nombre="Delicioso" defer></script>
 </body>
 </html>
